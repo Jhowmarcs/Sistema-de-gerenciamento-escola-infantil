@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from app.models import db, Aluno
+from app.models import Aluno, Turma, Professor, Pagamento, Presenca, Atividade, AtividadeAluno, Usuario
+
 
 bp = Blueprint('routes', __name__)
 
