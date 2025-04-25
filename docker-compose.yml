@@ -29,4 +29,6 @@ services:
     # Outras configurações conforme a ferramenta de monitoramento
 
 volumes:
+ - ./BD/SQL:/docker-entrypoint-initdb.d
+
   postgres_data:
