@@ -1,6 +1,5 @@
-from flask import Blueprint, request, jsonify
 from datetime import datetime
-
+from app import db  # Importa a instância do SQLAlchemy definida em app/__init__.py
 bp = Blueprint('api', __name__)
 
 # -----------------------------------------
