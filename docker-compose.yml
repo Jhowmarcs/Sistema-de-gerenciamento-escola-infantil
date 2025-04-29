@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   app:
@@ -7,28 +7,51 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - DATABASE_URL=postgresql://usuario:senha@db:5432/nome_banco
+      - DATABASE_URL=postgresql://postgres:secret@postgres:5432/nome_banco
     depends_on:
       - db
+      - prometheus
+      - grafana
 
   db:
     image: postgres:13
     environment:
-      POSTGRES_USER: usuario
-      POSTGRES_PASSWORD: senha
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
       POSTGRES_DB: nome_banco
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # Se houver scripts SQL para inicialização, você pode montar um volume apontando para BD/SQL
+      - ./BD/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
 
-  monitor:
-    build:
-      context: ./observabilidade
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgres://postgres:secret@db:5432/nome_banco?sslmode=disable"
+    depends_on:
+      - db
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./BD/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "3000:3000"  # Exemplo: porta padrão do Grafana ou outra ferramenta
-    # Outras configurações conforme a ferramenta de monitoramento
+      - "9090:9090"
+    depends_on:
+      - postgres_exporter
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
 
 volumes:
- - ./BD/SQL:/docker-entrypoint-initdb.d
-
-  postgres_data:
+  postgres_data: {}
+  grafana_data: {}
