@@ -1,0 +1,116 @@
+Relatório do Projeto: Sistema de Gerenciamento Escolar (Escola Infantil)
+Data: [Insira a data atual]
+
+1. Visão Geral do Projeto
+O projeto foi estruturado para utilizar containers Docker (via Docker Compose) com os seguintes serviços essenciais:
+
+App: Aplicação principal (provavelmente construída com Flask ou similar) que expõe a API.
+
+DB: Banco de dados PostgreSQL que armazena as informações escolares.
+
+Observabilidade: Composta pelos serviços de monitoramento:
+
+Prometheus: Responsável por coletar as métricas do sistema.
+
+Grafana: Utilizado para visualização das métricas e criação de dashboards.
+
+postgres_exporter: Serviço que exporta métricas do PostgreSQL para o Prometheus (precisa estar acessível a partir do container do Prometheus).
+
+Além disso, a intenção é incorporar uma documentação Swagger para a API e desenvolver os CRUDs necessários para manipulação dos dados.
+
+2. Status Atual
+2.1. Configuração do Ambiente Docker
+Docker Compose:
+
+O arquivo docker-compose.yml foi estruturado com serviços para app, db, postgres_exporter, prometheus e grafana.
+
+A organização das pastas está definida, incluindo uma pasta Observabilidade/ que contém subpastas para Prometheus e Grafana com seus respectivos Dockerfiles e arquivos de configuração/documentação.
+
+Problemas Relatados:
+
+Prometheus e Grafana: Atualmente, os containers de Prometheus e Grafana não estão funcionando como esperado.
+
+Prometheus: Aparentemente, o serviço não está conseguindo acessar o postgres_exporter. É necessário garantir que o container do Prometheus possa se conectar corretamente ao container do postgres_exporter, utilizando o hostname correto e estando na mesma rede.
+
+Grafana: Ainda não está respondendo como previsto (possivelmente devido a dependências ou configuração de rede relacionada a Prometheus).
+
+Mensagens de Erro / Observações Durante o Desenvolvimento:
+
+Problemas com o parsing dos Dockerfiles (linhas com marcas ou comentários em markdown) foram corrigidos.
+
+Ao realizar commits e push no repositório, houve conflitos de histórico que foram tratados com --allow-unrelated-histories.
+
+2.2. Funcionalidades em Desenvolvimento
+Serviços de Monitoramento:
+
+postgres_exporter: Deve ser revisado para assegurar que esteja acessível a partir do container do Prometheus. Ação Necessária: Revisar a configuração de rede no docker-compose.yml e no arquivo de configuração config.yml (ou prometheus.yml) para que o target seja, por exemplo, postgres_exporter:9187 ou o hostname correspondente.
+
+Documentação Swagger:
+
+Ainda precisa ser criada. Ação Necessária:
+
+Documentar todos os endpoints da API.
+
+Incluir exemplos de requisições/respostas.
+
+Possivelmente, integrar uma interface Swagger UI ou definir um arquivo openapi.yaml para futuras iterações.
+
+CRUDs da Aplicação:
+
+As operações básicas de criação, leitura, atualização e deleção (para os dados escolares ou outras entidades) ainda precisam ser implementadas na API.
+
+Ação Necessária:
+
+Definir as entidades e endpoints correspondentes.
+
+Implementar as operações CRUD com tratamento adequado de erros.
+
+Integrar testes para garantir a funcionalidade dos endpoints.
+
+3. Próximos Passos
+3.1. Ajustar a Observabilidade
+Revisar Configuração de Rede:
+
+Garantir que os containers de Prometheus e postgres_exporter estão na mesma rede Docker (normalmente o Docker Compose já cria uma rede compartilhada entre os serviços).
+
+No arquivo de configuração do Prometheus (por exemplo, em Observabilidade/prometheus/config.yml), verificar se o target está correto, algo como:
+
+yaml
+scrape_configs:
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+Testar Conectividade:
+
+Após ajustar as configurações, reiniciar os serviços e conferir se o Prometheus consegue coletar as métricas do postgres_exporter.
+
+3.2. Configurar e Documentar a API com Swagger
+Criar a Documentação Swagger:
+
+Desenvolver um arquivo OpenAPI (por exemplo, swagger.yaml ou openapi.yaml) listando todos os endpoints, métodos HTTP, parâmetros e exemplos de resposta.
+
+Integrar Swagger UI:
+
+Se a aplicação usar Flask, considerar usar extensões como o Flask-RESTX ou Flask-Swagger para exibir a documentação interativa.
+
+3.3. Implementar os Endpoints CRUD
+Definir as Entidades e Endpoints:
+
+Listar quais recursos (ex.: alunos, turmas, professores, etc.) serão gerenciados.
+
+Desenvolver os CRUDs:
+
+Implementar os métodos para criação, leitura, atualização e deleção com testes adequados.
+
+Garantir que as operações ocorram de forma consistente com a base de dados.
+
+Testar e Validar:
+
+Usar ferramentas de teste (Postman, Insomnia ou mesmo os testes automatizados da aplicação) para validar que os endpoints funcionam corretamente.
+
+4. Observações Finais
+Sincronização: Certifique-se de manter o repositório Git atualizado com todos os commits referentes às mudanças. Isso facilitará retomar o trabalho no futuro.
+
+Integração Contínua: Avalie a possibilidade de configurar uma pipeline de CI/CD para automatizar builds e testes, garantindo que todas as alterações sejam verificadas antes do deployment.
+
+Documentação: Mantenha a documentação (tanto do Swagger quanto da observabilidade) sempre atualizada para facilitar a compreensão do sistema por novos integrantes ou para consultas futuras.
