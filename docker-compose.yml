@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./App
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:secret@db:5432/escola_infantil
+      - SECRET_KEY=chave-secreta-producao
+      - DEBUG=False
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - escola-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    build:
+      context: ./BD
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: escola_infantil
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - escola-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgres://postgres:secret@db:5432/escola_infantil?sslmode=disable"
+    depends_on:
+      - db
+    networks:
+      - escola-net
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./Observabilidade/prometheus/config.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - postgres_exporter
+    networks:
+      - escola-net
+
+  grafana:
+    build:
+      context: ./Observabilidade/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - escola-net
+
+networks:
+  escola-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  grafana_data:
