@@ -1,0 +1,15 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Instalar dependências
+RUN pip install streamlit pandas requests
+
+# Copiar aplicação
+COPY frontend/streamlit_app.py .
+
+# Expor porta
+EXPOSE 8501
+
+# Comando para iniciar
+CMD ["streamlit", "run", "streamlit_app.py", "--server.address", "0.0.0.0"]
