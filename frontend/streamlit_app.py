@@ -79,7 +79,11 @@ else:
         "ChatBot",
         "Relatórios"
     ]
-    
+    nivel = st.session_state.usuario_info['nivel_acesso'].strip().lower()
+    st.sidebar.write(f"**Nível (debug):** {nivel}")
+    if nivel == 'administrador':
+        opcoes.insert(1, "Usuários")
+    opcoes.append("Meu Perfil")
     opcao_selecionada = st.sidebar.selectbox("Selecione uma opção:", opcoes)
     
     # Botão de logout
@@ -317,51 +321,96 @@ else:
                         df_inad = pd.DataFrame(relatorio['inadimplentes'])
                         st.dataframe(df_inad, use_container_width=True)
     
+    # Gerenciamento de Presenças
+    elif opcao_selecionada == "Presenças":
+        st.title("🗓️ Gerenciamento de Presenças")
+        tab1, tab2, tab3 = st.tabs(["Lista de Presenças", "Registrar Presença", "Relatório de Frequência"])
+
+        with tab1:
+            st.subheader("Consultar Presenças por Data")
+            data_presenca = st.date_input("Selecione a data", value=date.today())
+            if st.button("Buscar Presenças"):
+                presencas = fazer_requisicao(f"/api/presencas/data/{data_presenca}")
+                if presencas:
+                    df = pd.DataFrame(presencas)
+                    st.dataframe(df, use_container_width=True)
+                else:
+                    st.info("Nenhuma presença registrada para esta data.")
+
+        with tab2:
+            st.subheader("Registrar Presença de Aluno")
+            alunos = fazer_requisicao("/api/alunos")
+            if alunos:
+                aluno_opcoes = {a['id_aluno']: a['nome_completo'] for a in alunos}
+                id_aluno = st.selectbox("Aluno", options=list(aluno_opcoes.keys()), format_func=lambda x: aluno_opcoes[x])
+                data_presenca = st.date_input("Data da Presença", value=date.today(), key="data_presenca_registro")
+                presente = st.selectbox("Presença", ["Presente", "Faltou"])
+                if st.button("Registrar Presença"):
+                    data = {
+                        "id_aluno": id_aluno,
+                        "data": data_presenca.strftime("%Y-%m-%d"),
+                        "presente": presente == "Presente"
+                    }
+                    resultado = fazer_requisicao("/api/presencas", "POST", data)
+                    if resultado:
+                        st.success("Presença registrada com sucesso!")
+                        st.rerun()
+            else:
+                st.info("Nenhum aluno cadastrado.")
+
+        with tab3:
+            st.subheader("Relatório de Frequência por Aluno")
+            alunos = fazer_requisicao("/api/alunos")
+            if alunos:
+                aluno_opcoes = {a['id_aluno']: a['nome_completo'] for a in alunos}
+                id_aluno = st.selectbox("Selecione o aluno", options=list(aluno_opcoes.keys()), format_func=lambda x: aluno_opcoes[x], key="aluno_freq")
+                if st.button("Gerar Relatório de Frequência"):
+                    relatorio = fazer_requisicao(f"/api/presencas/aluno/{id_aluno}")
+                    if relatorio:
+                        df = pd.DataFrame(relatorio)
+                        st.dataframe(df, use_container_width=True)
+                        total_presencas = sum(1 for p in relatorio if p.get('presente'))
+                        st.metric("Total de Presenças", total_presencas)
+                    else:
+                        st.info("Nenhuma presença registrada para este aluno.")
+            else:
+                st.info("Nenhum aluno cadastrado.")
+    
     # ChatBot
     elif opcao_selecionada == "ChatBot":
         st.title("🤖 ChatBot - Assistente Virtual")
-        
         # Inicializar histórico de chat
         if 'chat_history' not in st.session_state:
             st.session_state.chat_history = []
-        
         # Mostrar histórico
         for msg in st.session_state.chat_history:
             if msg['tipo'] == 'usuario':
                 st.chat_message("user").write(msg['conteudo'])
             else:
                 st.chat_message("assistant").write(msg['conteudo'])
-        
         # Input para nova mensagem
         if prompt := st.chat_input("Digite sua mensagem..."):
-            # Adicionar mensagem do usuário
             st.session_state.chat_history.append({
                 'tipo': 'usuario',
                 'conteudo': prompt
             })
             st.chat_message("user").write(prompt)
-            
-            # Enviar para o ChatBot
             data = {"mensagem": prompt}
             resposta = fazer_requisicao("/api/chatbot/mensagem", "POST", data)
-            
-            if resposta:
+            if resposta and 'resposta_bot' in resposta:
                 bot_response = resposta['resposta_bot']
                 st.session_state.chat_history.append({
                     'tipo': 'bot',
                     'conteudo': bot_response
                 })
                 st.chat_message("assistant").write(bot_response)
-                
-                # Mostrar opções se disponíveis
                 if 'opcoes' in resposta and resposta['opcoes']:
                     st.write("**Opções disponíveis:**")
                     for opcao in resposta['opcoes']:
                         if st.button(opcao, key=f"opcao_{len(st.session_state.chat_history)}_{opcao}"):
-                            # Processar opção selecionada
                             data_opcao = {"mensagem": opcao}
                             resposta_opcao = fazer_requisicao("/api/chatbot/mensagem", "POST", data_opcao)
-                            if resposta_opcao:
+                            if resposta_opcao and 'resposta_bot' in resposta_opcao:
                                 st.session_state.chat_history.append({
                                     'tipo': 'usuario',
                                     'conteudo': opcao
@@ -371,11 +420,180 @@ else:
                                     'conteudo': resposta_opcao['resposta_bot']
                                 })
                                 st.rerun()
-        
-        # Botão para limpar chat
+                            else:
+                                st.error("Erro ao obter resposta do ChatBot para a opção selecionada.")
+            else:
+                st.session_state.chat_history.append({
+                    'tipo': 'bot',
+                    'conteudo': 'Desculpe, não foi possível obter resposta do ChatBot.'
+                })
+                st.chat_message("assistant").write('Desculpe, não foi possível obter resposta do ChatBot.')
         if st.button("Limpar Conversa"):
             st.session_state.chat_history = []
             st.rerun()
+    
+    # Gerenciamento de Atividades
+    elif opcao_selecionada == "Atividades":
+        st.title("🎨 Gerenciamento de Atividades")
+        tab1, tab2, tab3 = st.tabs(["Lista de Atividades", "Cadastrar Atividade", "Relatório de Atividades"])
+
+        with tab1:
+            atividades = fazer_requisicao("/api/atividades")
+            if atividades:
+                df = pd.DataFrame(atividades)
+                st.dataframe(df, use_container_width=True)
+            else:
+                st.info("Nenhuma atividade cadastrada.")
+
+        with tab2:
+            turmas = fazer_requisicao("/api/turmas")
+            if turmas:
+                turma_opcoes = {t['id_turma']: t['nome_turma'] for t in turmas}
+                with st.form("cadastro_atividade"):
+                    nome = st.text_input("Nome da Atividade")
+                    descricao = st.text_area("Descrição")
+                    id_turma = st.selectbox("Turma", options=list(turma_opcoes.keys()), format_func=lambda x: turma_opcoes[x])
+                    data_atividade = st.date_input("Data da Atividade", value=date.today(), key="data_atividade")
+                    submit = st.form_submit_button("Cadastrar")
+                    if submit:
+                        data = {
+                            "nome": nome,
+                            "descricao": descricao,
+                            "id_turma": id_turma,
+                            "data": data_atividade.strftime("%Y-%m-%d")
+                        }
+                        resultado = fazer_requisicao("/api/atividades", "POST", data)
+                        if resultado:
+                            st.success("Atividade cadastrada com sucesso!")
+                            st.rerun()
+            else:
+                st.info("Nenhuma turma cadastrada.")
+
+        with tab3:
+            st.subheader("Relatório de Atividades por Turma")
+            turmas = fazer_requisicao("/api/turmas")
+            if turmas:
+                turma_opcoes = {t['id_turma']: t['nome_turma'] for t in turmas}
+                id_turma = st.selectbox("Selecione a turma", options=list(turma_opcoes.keys()), format_func=lambda x: turma_opcoes[x], key="turma_ativ")
+                if st.button("Gerar Relatório de Atividades"):
+                    relatorio = fazer_requisicao(f"/api/atividades?turma={id_turma}")
+                    if relatorio:
+                        df = pd.DataFrame(relatorio)
+                        st.dataframe(df, use_container_width=True)
+                        st.metric("Total de Atividades", len(relatorio))
+                    else:
+                        st.info("Nenhuma atividade registrada para esta turma.")
+            else:
+                st.info("Nenhuma turma cadastrada.")
+    
+    # Relatórios Gerais
+    elif opcao_selecionada == "Relatórios":
+        st.title("📑 Relatórios do Sistema")
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "Pagamentos por Período",
+            "Inadimplência",
+            "Frequência Geral",
+            "Atividades por Turma"
+        ])
+
+        with tab1:
+            st.subheader("Relatório de Pagamentos por Período")
+            data_ini = st.date_input("Data Inicial", value=date.today(), key="data_ini_pag")
+            data_fim = st.date_input("Data Final", value=date.today(), key="data_fim_pag")
+            if st.button("Gerar Relatório de Pagamentos"):
+                relatorio = fazer_requisicao(f"/api/pagamentos/relatorio/periodo?data_ini={data_ini}&data_fim={data_fim}")
+                if relatorio:
+                    df = pd.DataFrame(relatorio)
+                    st.dataframe(df, use_container_width=True)
+                else:
+                    st.info("Nenhum pagamento encontrado no período.")
+
+        with tab2:
+            st.subheader("Relatório de Inadimplência")
+            if st.button("Gerar Relatório de Inadimplência", key="btn_inad"):
+                relatorio = fazer_requisicao("/api/pagamentos/relatorio/inadimplencia")
+                if relatorio:
+                    st.metric("Total de Inadimplentes", relatorio['total_inadimplentes'])
+                    st.metric("Valor Total Devido", f"R$ {relatorio['valor_total_devido']:.2f}")
+                    if relatorio['inadimplentes']:
+                        df = pd.DataFrame(relatorio['inadimplentes'])
+                        st.dataframe(df, use_container_width=True)
+                else:
+                    st.info("Nenhum inadimplente encontrado.")
+
+        with tab3:
+            st.subheader("Relatório de Frequência Geral")
+            if st.button("Gerar Relatório de Frequência Geral"):
+                relatorio = fazer_requisicao("/api/presencas/relatorio/frequencia")
+                if relatorio:
+                    df = pd.DataFrame(relatorio)
+                    st.dataframe(df, use_container_width=True)
+                else:
+                    st.info("Nenhuma frequência registrada.")
+
+        with tab4:
+            st.subheader("Relatório de Atividades por Turma")
+            turmas = fazer_requisicao("/api/turmas")
+            if turmas:
+                turma_opcoes = {t['id_turma']: t['nome_turma'] for t in turmas}
+                id_turma = st.selectbox("Selecione a turma", options=list(turma_opcoes.keys()), format_func=lambda x: turma_opcoes[x], key="turma_relatorio_ativ")
+                if st.button("Gerar Relatório de Atividades", key="btn_ativ_rel"):
+                    relatorio = fazer_requisicao(f"/api/atividades?turma={id_turma}")
+                    if relatorio:
+                        df = pd.DataFrame(relatorio)
+                        st.dataframe(df, use_container_width=True)
+                    else:
+                        st.info("Nenhuma atividade registrada para esta turma.")
+            else:
+                st.info("Nenhuma turma cadastrada.")
+    
+    # Cadastro de Usuários (apenas admin)
+    elif opcao_selecionada == "Usuários":
+        st.title("👤 Cadastro de Usuários")
+        with st.form("cadastro_usuario"):
+            login = st.text_input("Login")
+            senha = st.text_input("Senha", type="password")
+            nivel = st.selectbox("Nível de Acesso", ["Administrador", "Secretaria", "Professor"])
+            submit = st.form_submit_button("Cadastrar Usuário")
+            if submit:
+                data = {"login": login, "senha": senha, "nivel_acesso": nivel}
+                resultado = fazer_requisicao("/api/auth/register", "POST", data)
+                if resultado:
+                    st.success("Usuário cadastrado com sucesso!")
+                else:
+                    st.error("Erro ao cadastrar usuário.")
+    
+    # Edição de perfil do usuário logado
+    elif opcao_selecionada == "Meu Perfil":
+        st.title("👤 Meu Perfil")
+        usuario = st.session_state.usuario_info
+        with st.form("editar_perfil"):
+            login = st.text_input("Login", value=usuario['login'], disabled=True)
+            senha = st.text_input("Nova Senha", type="password")
+            # Permite editar apenas o próprio perfil, exceto login e nível
+            if usuario['nivel_acesso'] == 'Professor':
+                nome = st.text_input("Nome Completo", value=usuario.get('nome_completo', ''))
+                email = st.text_input("Email", value=usuario.get('email', ''))
+            else:
+                nome = st.text_input("Nome Completo", value=usuario.get('nome_completo', ''), disabled=True)
+                email = st.text_input("Email", value=usuario.get('email', ''), disabled=True)
+            submit = st.form_submit_button("Salvar Alterações")
+            if submit:
+                data = {}
+                if senha:
+                    data['senha'] = senha
+                if usuario['nivel_acesso'] == 'Professor':
+                    data['nome_completo'] = nome
+                    data['email'] = email
+                if data:
+                    resultado = fazer_requisicao(f"/api/auth/update/{usuario['login']}", "PUT", data)
+                    if resultado:
+                        st.success("Perfil atualizado com sucesso!")
+                        st.session_state.usuario_info.update(data)
+                    else:
+                        st.error("Erro ao atualizar perfil.")
+                else:
+                    st.info("Nenhuma alteração realizada.")
     
     # Outras seções podem ser implementadas de forma similar...
     else:
