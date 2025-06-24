@@ -132,10 +132,35 @@ else:
         with tab1:
             st.subheader("Lista de Alunos")
             alunos = fazer_requisicao("/api/alunos")
-            
             if alunos:
-                df = pd.DataFrame(alunos)
-                st.dataframe(df, use_container_width=True)
+                for aluno in alunos:
+                    col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1,2,2,2,2,2,2,1,1])
+                    col1.write(f"ID: {aluno.get('id_aluno','')}")
+                    col2.write(f"Nome: {aluno.get('nome_completo','')}")
+                    col3.write(f"Turma: {aluno.get('id_turma','')}")
+                    col4.write(f"Nascimento: {aluno.get('data_nascimento','')}")
+                    col5.write(f"Responsável: {aluno.get('nome_responsavel','')}")
+                    col6.write(f"Tel. Resp.: {aluno.get('telefone_responsavel','')}")
+                    col7.write(f"Email Resp.: {aluno.get('email_responsavel','')}")
+                    col8.write(f"Info: {aluno.get('informacoes_adicionais','')}")
+                    editar = col8.button("Editar", key=f"edit_aluno_{aluno['id_aluno']}")
+                    excluir = col9.button("Excluir", key=f"del_aluno_{aluno['id_aluno']}")
+                    if editar:
+                        with st.form(f"form_edit_aluno_{aluno['id_aluno']}"):
+                            novo_nome = st.text_input("Nome Completo", value=aluno['nome_completo'])
+                            submit_edit = st.form_submit_button("Salvar Alterações")
+                            if submit_edit:
+                                data = {"nome_completo": novo_nome}
+                                resultado = fazer_requisicao(f"/api/alunos/{aluno['id_aluno']}", "PUT", data)
+                                if resultado:
+                                    st.success("Aluno atualizado com sucesso!")
+                                    st.rerun()
+                    if excluir:
+                        if st.confirm(f"Tem certeza que deseja excluir o aluno {aluno['id_aluno']}?"):
+                            resultado = fazer_requisicao(f"/api/alunos/{aluno['id_aluno']}", "DELETE")
+                            if resultado:
+                                st.success("Aluno excluído com sucesso!")
+                                st.rerun()
             else:
                 st.info("Nenhum aluno cadastrado.")
         
@@ -187,14 +212,37 @@ else:
         tab1, tab2 = st.tabs(["Lista de Professores", "Cadastrar Professor"])
         
         with tab1:
+            st.subheader("Lista de Professores")
             professores = fazer_requisicao("/api/professores")
             if professores:
-                df = pd.DataFrame(professores)
-                st.dataframe(df, use_container_width=True)
+                for prof in professores:
+                    col1, col2, col3, col4 = st.columns([2,2,1,1])
+                    col1.write(f"ID: {prof['id_professor']}")
+                    col2.write(f"Nome: {prof['nome_completo']}")
+                    editar = col3.button("Editar", key=f"edit_prof_{prof['id_professor']}")
+                    excluir = col4.button("Excluir", key=f"del_prof_{prof['id_professor']}")
+                    if editar:
+                        with st.form(f"form_edit_prof_{prof['id_professor']}"):
+                            novo_nome = st.text_input("Nome Completo", value=prof['nome_completo'])
+                            submit_edit = st.form_submit_button("Salvar Alterações")
+                            if submit_edit:
+                                data = {"nome_completo": novo_nome}
+                                resultado = fazer_requisicao(f"/api/professores/{prof['id_professor']}", "PUT", data)
+                                if resultado:
+                                    st.success("Professor atualizado com sucesso!")
+                                    st.rerun()
+                    if excluir:
+                        if st.confirm(f"Tem certeza que deseja excluir o professor {prof['id_professor']}?"):
+                            resultado = fazer_requisicao(f"/api/professores/{prof['id_professor']}", "DELETE")
+                            if resultado:
+                                st.success("Professor excluído com sucesso!")
+                                st.rerun()
             else:
                 st.info("Nenhum professor cadastrado.")
         
         with tab2:
+            st.subheader("Cadastrar Novo Professor")
+            
             with st.form("cadastro_professor"):
                 nome = st.text_input("Nome Completo")
                 email = st.text_input("Email")
@@ -221,10 +269,31 @@ else:
         tab1, tab2 = st.tabs(["Lista de Turmas", "Cadastrar Turma"])
         
         with tab1:
+            st.subheader("Lista de Turmas")
             turmas = fazer_requisicao("/api/turmas")
             if turmas:
-                df = pd.DataFrame(turmas)
-                st.dataframe(df, use_container_width=True)
+                for turma in turmas:
+                    col1, col2, col3, col4 = st.columns([2,2,1,1])
+                    col1.write(f"ID: {turma['id_turma']}")
+                    col2.write(f"Nome: {turma['nome_turma']}")
+                    editar = col3.button("Editar", key=f"edit_turma_{turma['id_turma']}")
+                    excluir = col4.button("Excluir", key=f"del_turma_{turma['id_turma']}")
+                    if editar:
+                        with st.form(f"form_edit_turma_{turma['id_turma']}"):
+                            novo_nome = st.text_input("Nome da Turma", value=turma['nome_turma'])
+                            submit_edit = st.form_submit_button("Salvar Alterações")
+                            if submit_edit:
+                                data = {"nome_turma": novo_nome}
+                                resultado = fazer_requisicao(f"/api/turmas/{turma['id_turma']}", "PUT", data)
+                                if resultado:
+                                    st.success("Turma atualizada com sucesso!")
+                                    st.rerun()
+                    if excluir:
+                        if st.confirm(f"Tem certeza que deseja excluir a turma {turma['id_turma']}?"):
+                            resultado = fazer_requisicao(f"/api/turmas/{turma['id_turma']}", "DELETE")
+                            if resultado:
+                                st.success("Turma excluída com sucesso!")
+                                st.rerun()
             else:
                 st.info("Nenhuma turma cadastrada.")
         
@@ -307,7 +376,7 @@ else:
             
             with st.form("registro_pagamento"):
                 if alunos:
-                    aluno_opcoes = {a['id_aluno]: a['nome_completo'] for a in alunos}
+                    aluno_opcoes = {a['id_aluno']: a['nome_completo'] for a in alunos}
                     id_aluno = st.selectbox("Aluno", options=list(aluno_opcoes.keys()),
                                           format_func=lambda x: aluno_opcoes[x])
                 else:

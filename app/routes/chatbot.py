@@ -10,27 +10,41 @@ class ChatBot:
     def __init__(self):
         self.responses = {
             'saudacao': [
-                'olá', 'oi', 'bom dia', 'boa tarde', 'boa noite', 'hey', 'e aí'
+                'olá', 'oi', 'bom dia', 'boa tarde', 'boa noite', 'hey', 'e aí', 'saudações', 'salve', 'tudo bem', 'como vai', 'fala', 'opa', 'alô', 'hello', 'hi'
             ],
             'pagamento': [
-                'pagamento', 'mensalidade', 'valor', 'quanto', 'pagar', 'boleto', 'taxa'
+                'pagamento', 'mensalidade', 'valor', 'quanto', 'pagar', 'boleto', 'taxa', 'cobrança', 'fatura', 'parcelamento', 'desconto', 'vencimento', 'atraso', 'quitar', 'pagou', 'pagarei', 'pix', 'cartão', 'dinheiro', 'transferência', 'comprovante'
             ],
             'presenca': [
-                'presença', 'falta', 'frequência', 'ausência', 'compareceu', 'veio'
+                'presença', 'falta', 'frequência', 'ausência', 'compareceu', 'veio', 'faltou', 'presente', 'ausente', 'justificar', 'atraso', 'adiantamento', 'pontualidade', 'faltas', 'presenças'
             ],
             'atividade': [
-                'atividade', 'tarefa', 'exercício', 'trabalho', 'projeto'
+                'atividade', 'tarefa', 'exercício', 'trabalho', 'projeto', 'lição', 'prova', 'avaliação', 'atividade extra', 'atividade complementar', 'atividade pedagógica', 'atividade escolar', 'atividade do dia', 'atividade da semana', 'atividade recente', 'atividade passada', 'atividade futura'
             ],
             'horario': [
-                'horário', 'funcionamento', 'abre', 'fecha', 'hora'
+                'horário', 'funcionamento', 'abre', 'fecha', 'hora', 'expediente', 'abertura', 'fechamento', 'turno', 'manhã', 'tarde', 'noite', 'agenda', 'calendário', 'dias', 'quando abre', 'quando fecha'
             ],
             'contato': [
-                'contato', 'telefone', 'email', 'falar', 'conversar'
+                'contato', 'telefone', 'email', 'falar', 'conversar', 'whatsapp', 'zap', 'mensagem', 'atendimento', 'secretaria', 'direção', 'diretor', 'coordenador', 'coordenação', 'ajuda', 'suporte', 'informação', 'informações', 'endereço', 'localização', 'onde fica', 'visita', 'agendar', 'reunião', 'marcar', 'encontro'
             ]
         }
     
     def processar_mensagem(self, mensagem, id_aluno=None):
         mensagem = mensagem.lower().strip()
+        # Mapeamento direto das opções sugeridas para funções
+        opcoes_map = {
+            'consultar pagamentos': lambda: self._resposta_pagamento(mensagem, id_aluno),
+            'verificar presenças': lambda: self._resposta_presenca(mensagem, id_aluno),
+            'ver atividades': lambda: self._resposta_atividade(mensagem, id_aluno),
+            'horário de funcionamento': self._resposta_horario,
+            'informações de contato': self._resposta_contato,
+            'falar com atendente': self._resposta_contato,
+            'agendar reunião': self._resposta_contato,
+            'falar com a direção': self._resposta_contato,
+            'secretaria': self._resposta_contato
+        }
+        if mensagem in opcoes_map:
+            return opcoes_map[mensagem]()
         
         # Saudação
         if any(palavra in mensagem for palavra in self.responses['saudacao']):
@@ -56,7 +70,7 @@ class ChatBot:
         if any(palavra in mensagem for palavra in self.responses['contato']):
             return self._resposta_contato()
         
-        # Resposta padrão
+        # Se nenhuma regra for satisfeita, retorna resposta padrão
         return self._resposta_padrao()
     
     def _resposta_saudacao(self):
