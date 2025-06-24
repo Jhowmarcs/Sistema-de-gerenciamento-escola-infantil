@@ -229,6 +229,46 @@ chatbot = ChatBot()
 
 @chatbot_bp.route('/mensagem', methods=['POST'])
 def processar_mensagem():
+    """
+    Processar mensagem do usuário e retornar resposta do chatbot
+    ---
+    tags:
+      - Chatbot
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - mensagem
+          properties:
+            mensagem:
+              type: string
+              example: "Quais pagamentos estão pendentes?"
+            id_aluno:
+              type: integer
+              example: 1
+    responses:
+      200:
+        description: Resposta do chatbot
+        examples:
+          application/json: {
+            "mensagem_usuario": "Quais pagamentos estão pendentes?",
+            "resposta_bot": "Olá! Encontrei 1 pagamento(s) pendente(s) para Lucas Pereira:\n\n• Maio/2024: R$ 800.00 (Vencimento: 2024-05-10)\n\nTotal devido: R$ 800.00",
+            "opcoes": ["Como fazer um pagamento?", "Formas de pagamento aceitas"],
+            "dados_adicionais": {"total_pendente": 800.00, "quantidade": 1},
+            "timestamp": "2024-06-21T10:00:00"
+          }
+      400:
+        description: Mensagem não fornecida
+        examples:
+          application/json: {"error": "Mensagem é obrigatória"}
+      500:
+        description: Erro interno do chatbot
+        examples:
+          application/json: {"resposta_bot": "Desculpe, ocorreu um erro interno. Tente novamente mais tarde ou entre em contato com a secretaria.", "erro": true}
+    """
     data = request.get_json()
     
     if not data or 'mensagem' not in data:
@@ -259,6 +299,27 @@ def processar_mensagem():
 
 @chatbot_bp.route('/opcoes', methods=['GET'])
 def get_opcoes_iniciais():
+    """
+    Obter opções iniciais do chatbot
+    ---
+    tags:
+      - Chatbot
+    responses:
+      200:
+        description: Opções iniciais e mensagem de boas-vindas
+        examples:
+          application/json: {
+            "mensagem_boas_vindas": "Olá! Sou o assistente virtual da Escola Infantil UniFAAT-ADS. Como posso ajudá-lo?",
+            "opcoes_principais": [
+              "Consultar pagamentos",
+              "Verificar presenças",
+              "Ver atividades",
+              "Horário de funcionamento",
+              "Informações de contato"
+            ],
+            "disponibilidade": "24 horas por dia, 7 dias por semana"
+          }
+    """
     return jsonify({
         'mensagem_boas_vindas': 'Olá! Sou o assistente virtual da Escola Infantil UniFAAT-ADS. Como posso ajudá-lo?',
         'opcoes_principais': [
@@ -273,6 +334,50 @@ def get_opcoes_iniciais():
 
 @chatbot_bp.route('/transferir', methods=['POST'])
 def transferir_atendimento():
+    """
+    Transferir atendimento para contato humano
+    ---
+    tags:
+      - Chatbot
+    parameters:
+      - in: body
+        name: body
+        required: false
+        schema:
+          type: object
+          properties:
+            nome:
+              type: string
+              example: "Maria Oliveira"
+            email:
+              type: string
+              example: "maria.oliveira@email.com"
+            telefone:
+              type: string
+              example: "(11) 91234-5678"
+            assunto:
+              type: string
+              example: "Dúvida sobre pagamento"
+            mensagem:
+              type: string
+              example: "Gostaria de saber sobre descontos."
+    responses:
+      200:
+        description: Contato da secretaria e formulário de contato
+        examples:
+          application/json: {
+            "mensagem": "Entendi que você precisa de atendimento personalizado. Por favor, entre em contato com nossa secretaria:",
+            "contatos": {
+              "telefone": "(11) 91234-5678",
+              "email": "contato@unifaat-ads.edu.br",
+              "horario_atendimento": "Segunda a Sexta, 7h às 19h"
+            },
+            "formulario_contato": {
+              "disponivel": true,
+              "campos": ["nome", "email", "telefone", "assunto", "mensagem"]
+            }
+          }
+    """
     data = request.get_json()
     
     return jsonify({

@@ -1,9 +1,12 @@
 from app import create_app, db
 from app.models import Usuario, Professor, Turma, Aluno, Pagamento, Presenca, Atividade, AtividadeAluno
+from flasgger import Swagger
 import time
 import os
 
 app = create_app()
+
+swagger = Swagger(app)
 
 @app.route('/')
 def index():
@@ -61,6 +64,45 @@ def wait_for_db():
     
     print("❌ Não foi possível conectar ao banco de dados")
     return False
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """
+    Login no sistema
+    ---
+    tags:
+      - Autenticação
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            login:
+              type: string
+              example: admin
+            senha:
+              type: string
+              example: admin123
+    responses:
+      200:
+        description: Login realizado com sucesso
+        schema:
+          type: object
+          properties:
+            usuario:
+              type: object
+              properties:
+                login:
+                  type: string
+                nivel_acesso:
+                  type: string
+      401:
+        description: Credenciais inválidas
+    """
+    # ...implementar lógica real ou importar do app.routes.auth...
+    return {'message': 'Exemplo de resposta'}, 200
 
 if __name__ == '__main__':
     # Aguarda o banco estar disponível

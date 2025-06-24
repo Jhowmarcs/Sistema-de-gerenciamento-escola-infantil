@@ -214,6 +214,45 @@ Para suporte técnico ou dúvidas sobre o sistema:
 3. Crie uma nova issue descrevendo o problema
 4. Entre em contato com a equipe de desenvolvimento
 
+## Observabilidade e Documentação
+
+### Prometheus
+
+A aplicação expõe métricas no endpoint `/metrics` utilizando o [prometheus_flask_exporter](https://github.com/rycus86/prometheus_flask_exporter).  
+Essas métricas podem ser coletadas por um servidor Prometheus para monitoramento de performance e saúde da API.
+
+- **Endpoint de métricas:**  
+  ```
+  http://localhost:5000/metrics
+  ```
+
+### Grafana
+
+O Grafana pode ser utilizado para visualizar e criar dashboards a partir dos dados coletados pelo Prometheus.  
+No seu ambiente Docker, o Grafana já está configurado para se conectar ao Prometheus.
+
+- **Acesse o Grafana:**  
+  ```
+  http://localhost:3000
+  ```
+- **Login padrão:**  
+  - Usuário: `admin`
+  - Senha: `admin` (ou conforme definido no seu `docker-compose.yml`)
+
+### Swagger
+
+A documentação interativa da API está disponível via [Flasgger](https://github.com/flasgger/flasgger).
+
+- **Acesse a documentação Swagger:**  
+  ```
+  http://localhost:5000/apidocs
+  ```
+
+---
+
+> **Dica:**  
+> Certifique-se de que os serviços estejam rodando com `docker-compose up` para acessar Prometheus, Grafana e Swagger.
+
 ---
 
 **Sistema de Gerenciamento Escolar Infantil v1.0**  

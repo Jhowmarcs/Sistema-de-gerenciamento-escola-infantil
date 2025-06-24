@@ -10,3 +10,5 @@ pytest-flask==1.2.0
 streamlit==1.28.0
 pandas==2.1.1
 requests==2.31.0
+prometheus_flask_exporter==0.22.4
+flasgger==0.9.7.1

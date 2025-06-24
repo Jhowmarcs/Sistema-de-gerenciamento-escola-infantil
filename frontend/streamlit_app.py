@@ -268,8 +268,37 @@ else:
         with tab1:
             pagamentos = fazer_requisicao("/api/pagamentos")
             if pagamentos:
-                df = pd.DataFrame(pagamentos)
-                st.dataframe(df, use_container_width=True)
+                st.write("### Lista de Pagamentos")
+                for pagamento in pagamentos:
+                    col1, col2, col3, col4, col5, col6 = st.columns([2,2,2,2,1,1])
+                    col1.write(f"ID: {pagamento['id_pagamento']}")
+                    col2.write(f"Aluno: {pagamento['id_aluno']}")
+                    col3.write(f"Valor: R$ {pagamento['valor_pago']:.2f}")
+                    col4.write(f"Status: {pagamento['status']}")
+                    editar = col5.button("Editar", key=f"edit_pag_{pagamento['id_pagamento']}")
+                    excluir = col6.button("Excluir", key=f"del_pag_{pagamento['id_pagamento']}")
+                    if editar:
+                        with st.form(f"form_edit_pag_{pagamento['id_pagamento']}"):
+                            novo_valor = st.number_input("Valor Pago", value=pagamento['valor_pago'], format="%.2f")
+                            nova_referencia = st.text_input("Referência", value=pagamento['referencia'])
+                            novo_status = st.selectbox("Status", ["Pago", "Pendente"], index=0 if pagamento['status']=="Pago" else 1)
+                            submit_edit = st.form_submit_button("Salvar Alterações")
+                            if submit_edit:
+                                data = {
+                                    "valor_pago": novo_valor,
+                                    "referencia": nova_referencia,
+                                    "status": novo_status
+                                }
+                                resultado = fazer_requisicao(f"/api/pagamentos/{pagamento['id_pagamento']}", "PUT", data)
+                                if resultado:
+                                    st.success("Pagamento atualizado com sucesso!")
+                                    st.rerun()
+                    if excluir:
+                        if st.confirm(f"Tem certeza que deseja excluir o pagamento {pagamento['id_pagamento']}?"):
+                            resultado = fazer_requisicao(f"/api/pagamentos/{pagamento['id_pagamento']}", "DELETE")
+                            if resultado:
+                                st.success("Pagamento excluído com sucesso!")
+                                st.rerun()
             else:
                 st.info("Nenhum pagamento registrado.")
         
@@ -278,7 +307,7 @@ else:
             
             with st.form("registro_pagamento"):
                 if alunos:
-                    aluno_opcoes = {a['id_aluno']: a['nome_completo'] for a in alunos}
+                    aluno_opcoes = {a['id_aluno]: a['nome_completo'] for a in alunos}
                     id_aluno = st.selectbox("Aluno", options=list(aluno_opcoes.keys()),
                                           format_func=lambda x: aluno_opcoes[x])
                 else:
@@ -334,6 +363,27 @@ else:
                 if presencas:
                     df = pd.DataFrame(presencas)
                     st.dataframe(df, use_container_width=True)
+                    # Adiciona opções de editar/excluir
+                    for idx, row in df.iterrows():
+                        col1, col2 = st.columns([1,1])
+                        with col1:
+                            if st.button(f"Editar", key=f"edit_pres_{row['id_presenca']}"):
+                                with st.form(f"form_edit_pres_{row['id_presenca']}"):
+                                    novo_presente = st.selectbox("Presente?", [True, False], index=0 if row['presente'] else 1)
+                                    submit_edit = st.form_submit_button("Salvar Alterações")
+                                    if submit_edit:
+                                        data = {"presente": novo_presente}
+                                        resultado = fazer_requisicao(f"/api/presencas/{row['id_presenca']}", "PUT", data)
+                                        if resultado:
+                                            st.success("Presença atualizada com sucesso!")
+                                            st.rerun()
+                        with col2:
+                            if st.button(f"Excluir", key=f"del_pres_{row['id_presenca']}"):
+                                if st.confirm(f"Tem certeza que deseja excluir a presença {row['id_presenca']}?"):
+                                    resultado = fazer_requisicao(f"/api/presencas/{row['id_presenca']}", "DELETE")
+                                    if resultado:
+                                        st.success("Presença excluída com sucesso!")
+                                        st.rerun()
                 else:
                     st.info("Nenhuma presença registrada para esta data.")
 
@@ -438,10 +488,35 @@ else:
         tab1, tab2, tab3 = st.tabs(["Lista de Atividades", "Cadastrar Atividade", "Relatório de Atividades"])
 
         with tab1:
+            st.write("### Lista de Atividades")
             atividades = fazer_requisicao("/api/atividades")
             if atividades:
-                df = pd.DataFrame(atividades)
-                st.dataframe(df, use_container_width=True)
+                for atividade in atividades:
+                    col1, col2, col3, col4 = st.columns([2,2,1,1])
+                    col1.write(f"ID: {atividade['id_atividade']}")
+                    col2.write(f"Descrição: {atividade['descricao']}")
+                    editar = col3.button("Editar", key=f"edit_ativ_{atividade['id_atividade']}")
+                    excluir = col4.button("Excluir", key=f"del_ativ_{atividade['id_atividade']}")
+                    if editar:
+                        with st.form(f"form_edit_ativ_{atividade['id_atividade']}"):
+                            nova_desc = st.text_input("Descrição", value=atividade['descricao'])
+                            nova_data = st.date_input("Data", value=datetime.strptime(atividade['data_realizacao'], "%Y-%m-%d"))
+                            submit_edit = st.form_submit_button("Salvar Alterações")
+                            if submit_edit:
+                                data = {
+                                    "descricao": nova_desc,
+                                    "data_realizacao": nova_data.strftime("%Y-%m-%d")
+                                }
+                                resultado = fazer_requisicao(f"/api/atividades/{atividade['id_atividade']}", "PUT", data)
+                                if resultado:
+                                    st.success("Atividade atualizada com sucesso!")
+                                    st.rerun()
+                    if excluir:
+                        if st.confirm(f"Tem certeza que deseja excluir a atividade {atividade['id_atividade']}?"):
+                            resultado = fazer_requisicao(f"/api/atividades/{atividade['id_atividade']}", "DELETE")
+                            if resultado:
+                                st.success("Atividade excluída com sucesso!")
+                                st.rerun()
             else:
                 st.info("Nenhuma atividade cadastrada.")
 

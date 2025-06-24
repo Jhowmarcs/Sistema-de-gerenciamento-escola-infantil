@@ -8,6 +8,30 @@ presencas_bp = Blueprint('presencas', __name__)
 
 @presencas_bp.route('/', methods=['GET'])
 def get_presencas():
+    """
+    Listar todas as presenças
+    ---
+    tags:
+      - Presenças
+    responses:
+      200:
+        description: Lista de presenças cadastradas
+        examples:
+          application/json: [
+            {
+              "id_presenca": 1,
+              "id_aluno": 1,
+              "data_presenca": "2024-06-10",
+              "presente": true
+            },
+            {
+              "id_presenca": 2,
+              "id_aluno": 2,
+              "data_presenca": "2024-06-10",
+              "presente": false
+            }
+          ]
+    """
     presencas = Presenca.query.all()
     return jsonify([{
         'id_presenca': presenca.id_presenca,
@@ -18,6 +42,50 @@ def get_presencas():
 
 @presencas_bp.route('/', methods=['POST'])
 def create_presenca():
+    """
+    Registrar presença de um aluno
+    ---
+    tags:
+      - Presenças
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - id_aluno
+            - data_presenca
+            - presente
+          properties:
+            id_aluno:
+              type: integer
+              example: 1
+            data_presenca:
+              type: string
+              example: "2024-06-10"
+            presente:
+              type: boolean
+              example: true
+    responses:
+      201:
+        description: Presença registrada com sucesso
+        examples:
+          application/json: {"message": "Presença registrada com sucesso", "id": 3}
+      400:
+        description: Dados incompletos ou data inválida
+        examples:
+          application/json: {"error": "Dados incompletos"}
+          application/json: {"error": "Data de presença inválida"}
+      409:
+        description: Presença já registrada
+        examples:
+          application/json: {"error": "Presença já registrada para este aluno nesta data"}
+      500:
+        description: Erro ao registrar presença
+        examples:
+          application/json: {"error": "Erro ao registrar presença"}
+    """
     data = request.get_json()
     
     required_fields = ['id_aluno', 'data_presenca', 'presente']
@@ -56,6 +124,35 @@ def create_presenca():
 
 @presencas_bp.route('/data/<string:data>', methods=['GET'])
 def get_presencas_data(data):
+    """
+    Listar presenças por data
+    ---
+    tags:
+      - Presenças
+    parameters:
+      - name: data
+        in: path
+        type: string
+        required: true
+        description: Data da presença (YYYY-MM-DD)
+        example: "2024-06-10"
+    responses:
+      200:
+        description: Lista de presenças na data
+        examples:
+          application/json: [
+            {
+              "id_presenca": 1,
+              "id_aluno": 1,
+              "presente": true,
+              "aluno_nome": "Lucas Pereira"
+            }
+          ]
+      400:
+        description: Formato de data inválido
+        examples:
+          application/json: {"error": "Formato de data inválido"}
+    """
     try:
         data_presenca = datetime.strptime(data, '%Y-%m-%d').date()
         presencas = Presenca.query.filter_by(data_presenca=data_presenca).all()
@@ -72,6 +169,53 @@ def get_presencas_data(data):
 
 @presencas_bp.route('/aluno/<int:id_aluno>', methods=['GET'])
 def get_presencas_aluno(id_aluno):
+    """
+    Listar presenças de um aluno (com filtro de período)
+    ---
+    tags:
+      - Presenças
+    parameters:
+      - name: id_aluno
+        in: path
+        type: integer
+        required: true
+        description: ID do aluno
+        example: 1
+      - name: data_inicio
+        in: query
+        type: string
+        required: false
+        description: Data de início (YYYY-MM-DD)
+        example: "2024-06-01"
+      - name: data_fim
+        in: query
+        type: string
+        required: false
+        description: Data de fim (YYYY-MM-DD)
+        example: "2024-06-30"
+    responses:
+      200:
+        description: Frequência do aluno
+        examples:
+          application/json: {
+            "id_aluno": 1,
+            "total_dias": 20,
+            "dias_presentes": 18,
+            "dias_ausentes": 2,
+            "percentual_frequencia": 90.0,
+            "presencas": [
+              {
+                "id_presenca": 1,
+                "data_presenca": "2024-06-10",
+                "presente": true
+              }
+            ]
+          }
+      400:
+        description: Formato de data inválido
+        examples:
+          application/json: {"error": "Formato de data inválido"}
+    """
     data_inicio = request.args.get('data_inicio')
     data_fim = request.args.get('data_fim')
     
@@ -109,6 +253,41 @@ def get_presencas_aluno(id_aluno):
 
 @presencas_bp.route('/relatorio/diario/<string:data>', methods=['GET'])
 def relatorio_diario(data):
+    """
+    Relatório diário de presenças
+    ---
+    tags:
+      - Presenças
+    parameters:
+      - name: data
+        in: path
+        type: string
+        required: true
+        description: Data do relatório (YYYY-MM-DD)
+        example: "2024-06-10"
+    responses:
+      200:
+        description: Relatório diário de presenças
+        examples:
+          application/json: {
+            "data": "2024-06-10",
+            "total_alunos": 20,
+            "presentes": 18,
+            "ausentes": 2,
+            "percentual_presenca": 90.0,
+            "detalhes": [
+              {
+                "id_aluno": 1,
+                "aluno_nome": "Lucas Pereira",
+                "presente": true
+              }
+            ]
+          }
+      400:
+        description: Formato de data inválido
+        examples:
+          application/json: {"error": "Formato de data inválido"}
+    """
     try:
         data_presenca = datetime.strptime(data, '%Y-%m-%d').date()
         
@@ -137,6 +316,48 @@ def relatorio_diario(data):
 
 @presencas_bp.route('/relatorio/frequencia', methods=['GET'])
 def relatorio_frequencia():
+    """
+    Relatório de frequência por período
+    ---
+    tags:
+      - Presenças
+    parameters:
+      - name: data_inicio
+        in: query
+        type: string
+        required: true
+        description: Data de início (YYYY-MM-DD)
+        example: "2024-06-01"
+      - name: data_fim
+        in: query
+        type: string
+        required: true
+        description: Data de fim (YYYY-MM-DD)
+        example: "2024-06-30"
+    responses:
+      200:
+        description: Frequência de todos os alunos no período
+        examples:
+          application/json: {
+            "periodo": "2024-06-01 a 2024-06-30",
+            "total_alunos": 2,
+            "frequencia_por_aluno": [
+              {
+                "id_aluno": 1,
+                "aluno_nome": "Lucas Pereira",
+                "total_dias": 20,
+                "dias_presentes": 18,
+                "dias_ausentes": 2,
+                "percentual_frequencia": 90.0
+              }
+            ]
+          }
+      400:
+        description: Formato de data inválido ou datas não fornecidas
+        examples:
+          application/json: {"error": "Formato de data inválido"}
+          application/json: {"error": "Datas de início e fim são obrigatórias"}
+    """
     data_inicio = request.args.get('data_inicio')
     data_fim = request.args.get('data_fim')
     
@@ -184,6 +405,47 @@ def relatorio_frequencia():
 
 @presencas_bp.route('/<int:id_presenca>', methods=['PUT'])
 def update_presenca(id_presenca):
+    """
+    Atualizar dados de uma presença
+    ---
+    tags:
+      - Presenças
+    parameters:
+      - name: id_presenca
+        in: path
+        type: integer
+        required: true
+        description: ID da presença
+        example: 1
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            data_presenca:
+              type: string
+              example: "2024-06-10"
+            presente:
+              type: boolean
+              example: true
+    responses:
+      200:
+        description: Presença atualizada com sucesso
+        examples:
+          application/json: {"message": "Presença atualizada com sucesso"}
+      400:
+        description: Dados não fornecidos ou data inválida
+        examples:
+          application/json: {"error": "Dados não fornecidos"}
+          application/json: {"error": "Data de presença inválida"}
+      404:
+        description: Presença não encontrada
+      500:
+        description: Erro ao atualizar presença
+        examples:
+          application/json: {"error": "Erro ao atualizar presença"}
+    """
     presenca = Presenca.query.get_or_404(id_presenca)
     data = request.get_json()
     
@@ -204,3 +466,38 @@ def update_presenca(id_presenca):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Erro ao atualizar presença'}), 500
+
+@presencas_bp.route('/<int:id_presenca>', methods=['DELETE'])
+def delete_presenca(id_presenca):
+    """
+    Excluir uma presença
+    ---
+    tags:
+      - Presenças
+    parameters:
+      - name: id_presenca
+        in: path
+        type: integer
+        required: true
+        description: ID da presença
+        example: 1
+    responses:
+      200:
+        description: Presença excluída com sucesso
+        examples:
+          application/json: {"message": "Presença excluída com sucesso"}
+      404:
+        description: Presença não encontrada
+      500:
+        description: Erro ao excluir presença
+        examples:
+          application/json: {"error": "Erro ao excluir presença"}
+    """
+    presenca = Presenca.query.get_or_404(id_presenca)
+    try:
+        db.session.delete(presenca)
+        db.session.commit()
+        return jsonify({'message': 'Presença excluída com sucesso'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Erro ao excluir presença'}), 500

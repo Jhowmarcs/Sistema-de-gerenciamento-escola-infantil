@@ -7,6 +7,19 @@ alunos_bp = Blueprint('alunos', __name__)
 
 @alunos_bp.route('/', methods=['GET'])
 def get_alunos():
+    """
+    Listar todos os alunos
+    ---
+    tags:
+      - Alunos
+    responses:
+      200:
+        description: Lista de alunos
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Aluno'
+    """
     alunos = Aluno.query.all()
     return jsonify([{
         'id_aluno': aluno.id_aluno,
@@ -21,6 +34,23 @@ def get_alunos():
 
 @alunos_bp.route('/', methods=['POST'])
 def create_aluno():
+    """
+    Cadastrar novo aluno
+    ---
+    tags:
+      - Alunos
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Aluno'
+    responses:
+      201:
+        description: Aluno criado com sucesso
+      400:
+        description: Dados incompletos
+    """
     data = request.get_json()
     
     required_fields = ['nome_completo', 'data_nascimento', 'id_turma', 
@@ -55,6 +85,25 @@ def create_aluno():
 
 @alunos_bp.route('/<int:id_aluno>', methods=['GET'])
 def get_aluno(id_aluno):
+    """
+    Buscar aluno específico
+    ---
+    tags:
+      - Alunos
+    parameters:
+      - name: id_aluno
+        in: path
+        type: integer
+        required: true
+        description: ID do aluno
+    responses:
+      200:
+        description: Dados do aluno
+        schema:
+          $ref: '#/definitions/Aluno'
+      404:
+        description: Aluno não encontrado
+    """
     aluno = Aluno.query.get_or_404(id_aluno)
     return jsonify({
         'id_aluno': aluno.id_aluno,
@@ -69,6 +118,27 @@ def get_aluno(id_aluno):
 
 @alunos_bp.route('/<int:id_aluno>', methods=['PUT'])
 def update_aluno(id_aluno):
+    """
+    Atualizar aluno
+    ---
+    tags:
+      - Alunos
+    parameters:
+      - name: id_aluno
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Aluno'
+    responses:
+      200:
+        description: Aluno atualizado com sucesso
+      404:
+        description: Aluno não encontrado
+    """
     aluno = Aluno.query.get_or_404(id_aluno)
     data = request.get_json()
     
@@ -102,6 +172,22 @@ def update_aluno(id_aluno):
 
 @alunos_bp.route('/<int:id_aluno>', methods=['DELETE'])
 def delete_aluno(id_aluno):
+    """
+    Excluir aluno
+    ---
+    tags:
+      - Alunos
+    parameters:
+      - name: id_aluno
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Aluno excluído com sucesso
+      404:
+        description: Aluno não encontrado
+    """
     aluno = Aluno.query.get_or_404(id_aluno)
     
     try:

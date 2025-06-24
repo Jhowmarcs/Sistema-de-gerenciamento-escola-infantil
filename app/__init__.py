@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from prometheus_flask_exporter import PrometheusMetrics
 import os
 
 db = SQLAlchemy()
@@ -35,5 +36,9 @@ def create_app():
     app.register_blueprint(presencas_bp, url_prefix='/api/presencas')
     app.register_blueprint(atividades_bp, url_prefix='/api/atividades')
     app.register_blueprint(chatbot_bp, url_prefix='/api/chatbot')
-    
+
+    # Inicializar PrometheusMetrics após os blueprints
+    PrometheusMetrics(app)
+    print('URL MAP:', app.url_map)  # Debug: mostra todos os endpoints registrados
+
     return app

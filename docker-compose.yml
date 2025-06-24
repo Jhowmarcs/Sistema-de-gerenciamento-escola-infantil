@@ -23,15 +23,14 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/escola_infantil
       SECRET_KEY: escola-infantil-secret-key-2024
-      FLASK_ENV: development
+      FLASK_ENV: production
     ports:
       - "5000:5000"
     depends_on:
       - db
     networks:
       - escola_network
-    volumes:
-      - .:/app
+    command: ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
     restart: unless-stopped
 
   # Frontend Streamlit
@@ -47,6 +46,32 @@ services:
       - api
     networks:
       - escola_network
+    restart: unless-stopped
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    networks:
+      - escola_network
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - escola_network
+    depends_on:
+      - prometheus
     restart: unless-stopped
 
 networks:
